@@ -124,6 +124,13 @@ ORDER BY me.recorded_at DESC
 LIMIT 20;
 """
 
+#from databases.database import get_connection, initialize_database, MOOD_SUMMARY_QUERY
+
+# initialize_database()  # makes sure schema + mood levels exist
+# with get_connection() as conn:
+#     rows = conn.execute(MOOD_SUMMARY_QUERY).fetchall()
+#     for row in rows:
+#         print(row)
 
 def initialize_schema(conn: sqlite3.Connection) -> None:
 	for statement in SCHEMA_STATEMENTS:
