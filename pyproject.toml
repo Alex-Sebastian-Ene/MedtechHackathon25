@@ -24,8 +24,12 @@ dev = [
 ]
 
 ml-torch = [
-  "torch>=2.3",
-  "torchvision>=0.18",
+  "torch>=2.2,<2.4",
+  "torchvision>=0.17,<0.18",
+  "facenet-pytorch>=2.6",
+  "opencv-python>=4.10",
+  "transformers>=4.44",
+  "safetensors>=0.4",
 ]
 
 ml-tf = [
@@ -38,3 +42,7 @@ llm-ollama = [
 
 [tool.uv]
 default-groups = ["dev"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["medtech_hackathon25"]
