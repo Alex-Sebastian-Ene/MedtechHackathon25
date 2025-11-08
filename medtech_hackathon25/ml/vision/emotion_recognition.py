@@ -156,6 +156,7 @@ class FaceEmotionRecognizer:
             self.emotion_model = self._load_custom_emotion_model(emotion_checkpoint)
         else:
             self.emotion_model = PretrainedEmotionClassifier(device=self.device)
+
     def _load_custom_emotion_model(self, path: Path) -> PretrainedEmotionClassifier:
         return PretrainedEmotionClassifier(device=self.device, model_name=str(path))
 
