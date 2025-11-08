@@ -1,0 +1,40 @@
+[project]
+name = "medtech-hackathon25"
+version = "0.1.0"
+description = "Streamlit ML app"
+readme = "README.md"
+requires-python = ">=3.10,<3.12"
+dependencies = [
+  "streamlit>=1.37",
+  "pandas>=2.2",
+  "numpy>=1.26",
+  "matplotlib>=3.8",
+  "scikit-learn>=1.4",
+]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[dependency-groups]
+dev = [
+  "pytest>=8.2",
+  "black>=24.4",
+  "ruff>=0.4",
+]
+
+ml-torch = [
+  "torch>=2.3",
+  "torchvision>=0.18",
+]
+
+ml-tf = [
+  "tensorflow>=2.15",
+]
+
+llm-ollama = [
+  "ollama>=0.1.9",
+]
+
+[tool.uv]
+default-groups = ["dev"]
