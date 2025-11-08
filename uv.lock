@@ -963,13 +963,24 @@ name = "medtech-hackathon25"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "facenet-pytorch" },
     { name = "matplotlib" },
     { name = "numpy" },
     { name = "opencv-python" },
     { name = "pandas" },
+    { name = "plotly" },
+    { name = "safetensors" },
     { name = "scikit-learn" },
     { name = "streamlit" },
+<<<<<<< HEAD
+    { name = "streamlit-geolocation" },
+=======
+    { name = "streamlit-calendar" },
+>>>>>>> 3d6fc5e8df1536e623ada6652976e4e105ce74ed
     { name = "streamlit-webrtc" },
+    { name = "torch" },
+    { name = "torchvision" },
+    { name = "transformers" },
 ]
 
 [package.dev-dependencies]
@@ -995,13 +1006,24 @@ ml-torch = [
 
 [package.metadata]
 requires-dist = [
+    { name = "facenet-pytorch", specifier = ">=2.6" },
     { name = "matplotlib", specifier = ">=3.8" },
     { name = "numpy", specifier = ">=1.26" },
     { name = "opencv-python", specifier = ">=4.10" },
     { name = "pandas", specifier = ">=2.2" },
+    { name = "plotly", specifier = ">=6.4.0" },
+    { name = "safetensors", specifier = ">=0.4" },
     { name = "scikit-learn", specifier = ">=1.4" },
     { name = "streamlit", specifier = ">=1.37" },
+<<<<<<< HEAD
+    { name = "streamlit-geolocation", specifier = ">=0.0.10" },
+=======
+    { name = "streamlit-calendar", specifier = ">=1.4.0" },
+>>>>>>> 3d6fc5e8df1536e623ada6652976e4e105ce74ed
     { name = "streamlit-webrtc", specifier = ">=0.63.11" },
+    { name = "torch", specifier = ">=2.2,<2.4" },
+    { name = "torchvision", specifier = ">=0.17,<0.18" },
+    { name = "transformers", specifier = ">=4.44" },
 ]
 
 [package.metadata.requires-dev]
@@ -1222,10 +1244,10 @@ wheels = [
 
 [[package]]
 name = "nvidia-nvjitlink-cu12"
-version = "12.8.93"
+version = "12.9.86"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f6/74/86a07f1d0f42998ca31312f998bd3b9a7eff7f52378f4f270c8679c77fb9/nvidia_nvjitlink_cu12-12.8.93-py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.whl", hash = "sha256:81ff63371a7ebd6e6451970684f916be2eab07321b73c9d244dc2b4da7f73b88", size = 39254836, upload-time = "2025-03-07T01:49:55.661Z" },
+    { url = "https://files.pythonhosted.org/packages/46/0c/c75bbfb967457a0b7670b8ad267bfc4fffdf341c074e0a80db06c24ccfd4/nvidia_nvjitlink_cu12-12.9.86-py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.whl", hash = "sha256:e3f1171dbdc83c5932a45f0f4c99180a70de9bd2718c1ab77d14104f6d7147f9", size = 39748338, upload-time = "2025-06-05T20:10:25.613Z" },
 ]
 
 [[package]]
@@ -1403,6 +1425,19 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/61/33/9611380c2bdb1225fdef633e2a9610622310fed35ab11dac9620972ee088/platformdirs-4.5.0.tar.gz", hash = "sha256:70ddccdd7c99fc5942e9fc25636a8b34d04c24b335100223152c2803e4063312", size = 21632, upload-time = "2025-10-08T17:44:48.791Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/73/cb/ac7874b3e5d58441674fb70742e6c374b28b0c7cb988d37d991cde47166c/platformdirs-4.5.0-py3-none-any.whl", hash = "sha256:e578a81bb873cbb89a41fcc904c7ef523cc18284b7e3b3ccf06aca1403b7ebd3", size = 18651, upload-time = "2025-10-08T17:44:47.223Z" },
+]
+
+[[package]]
+name = "plotly"
+version = "6.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "narwhals" },
+    { name = "packaging" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/06/e6/b768650072837505804bed4790c5449ba348a3b720e27ca7605414e998cd/plotly-6.4.0.tar.gz", hash = "sha256:68c6db2ed2180289ef978f087841148b7efda687552276da15a6e9b92107052a", size = 7012379, upload-time = "2025-11-04T17:59:26.45Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/78/ae/89b45ccccfeebc464c9233de5675990f75241b8ee4cd63227800fdf577d1/plotly-6.4.0-py3-none-any.whl", hash = "sha256:a1062eafbdc657976c2eedd276c90e184ccd6c21282a5e9ee8f20efca9c9a4c5", size = 9892458, upload-time = "2025-11-04T17:59:22.622Z" },
 ]
 
 [[package]]
@@ -1613,7 +1648,7 @@ wheels = [
 
 [[package]]
 name = "pytest"
-version = "8.4.2"
+version = "9.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorama", marker = "sys_platform == 'win32'" },
@@ -1624,9 +1659,9 @@ dependencies = [
     { name = "pygments" },
     { name = "tomli", marker = "python_full_version < '3.11'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a3/5c/00a0e072241553e1a7496d638deababa67c5058571567b92a7eaa258397c/pytest-8.4.2.tar.gz", hash = "sha256:86c0d0b93306b961d58d62a4db4879f27fe25513d4b969df351abdddb3c30e01", size = 1519618, upload-time = "2025-09-04T14:34:22.711Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/da/1d/eb34f286b164c5e431a810a38697409cca1112cee04b287bb56ac486730b/pytest-9.0.0.tar.gz", hash = "sha256:8f44522eafe4137b0f35c9ce3072931a788a21ee40a2ed279e817d3cc16ed21e", size = 1562764, upload-time = "2025-11-08T17:25:33.34Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a8/a4/20da314d277121d6534b3a980b29035dcd51e6744bd79075a6ce8fa4eb8d/pytest-8.4.2-py3-none-any.whl", hash = "sha256:872f880de3fc3a5bdc88a11b39c9710c3497a547cfa9320bc3c5e62fbf272e79", size = 365750, upload-time = "2025-09-04T14:34:20.226Z" },
+    { url = "https://files.pythonhosted.org/packages/72/99/cafef234114a3b6d9f3aaed0723b437c40c57bdb7b3e4c3a575bc4890052/pytest-9.0.0-py3-none-any.whl", hash = "sha256:e5ccdf10b0bac554970ee88fc1a4ad0ee5d221f8ef22321f9b7e4584e19d7f96", size = 373364, upload-time = "2025-11-08T17:25:31.811Z" },
 ]
 
 [[package]]
@@ -2009,6 +2044,29 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/59/6d/327ddd5fc35fcf2aeecb4040668337f5565a1c6c95b1e892b8bfd4bb9031/streamlit-1.51.0.tar.gz", hash = "sha256:1e742a9c0b698f466c6f5bf58d333beda5a1fbe8de660743976791b5c1446ef6", size = 9742904, upload-time = "2025-10-29T17:07:39.082Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/39/60/868371b6482ccd9ef423c6f62650066cf8271fdb2ee84f192695ad6b7a96/streamlit-1.51.0-py3-none-any.whl", hash = "sha256:4008b029f71401ce54946bb09a6a3e36f4f7652cbb48db701224557738cfda38", size = 10171702, upload-time = "2025-10-29T17:07:35.97Z" },
+]
+
+[[package]]
+<<<<<<< HEAD
+name = "streamlit-geolocation"
+version = "0.0.10"
+=======
+name = "streamlit-calendar"
+version = "1.4.0"
+>>>>>>> 3d6fc5e8df1536e623ada6652976e4e105ce74ed
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "streamlit" },
+]
+<<<<<<< HEAD
+sdist = { url = "https://files.pythonhosted.org/packages/86/e2/f3d7da8d0e9892a5f20e53603b08a71cdb98a813193213b2cbcc3bb0e5f3/streamlit_geolocation-0.0.10.tar.gz", hash = "sha256:0617a39aa26a6019f9b6989e31a310742fe5fe1728321474cf8b5f03a7146d4c", size = 795952, upload-time = "2023-11-18T15:32:28.958Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2b/64/619d0332c50ecb65a5c03c63e78c06855325c8f605459168aa96a06ce042/streamlit_geolocation-0.0.10-py3-none-any.whl", hash = "sha256:e9d9eb61238db468076ef374027a1691fa6696f44d4e4472b0123df03dc0d9ea", size = 802665, upload-time = "2023-11-18T15:32:24.798Z" },
+=======
+sdist = { url = "https://files.pythonhosted.org/packages/ab/da/d394612a18e8ee3410c088035a7b804e56c0318e0e9169a150158723910d/streamlit_calendar-1.4.0.tar.gz", hash = "sha256:47bd4fe839fdcbc7f334cb3aec0b83556558357562bb58c5a9fdfe11cd4e7b80", size = 1264452, upload-time = "2025-07-24T13:14:50.032Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/09/1b/76be5aa2aeacc34bf0022680e3e694bcdd6c812b93b122d617513ebdc9bc/streamlit_calendar-1.4.0-py3-none-any.whl", hash = "sha256:bba0fbd47c0910b8eb15fc3689d3f66a097bf26818da36a3c1737e00fe995966", size = 1276322, upload-time = "2025-07-24T13:14:48.629Z" },
+>>>>>>> 3d6fc5e8df1536e623ada6652976e4e105ce74ed
 ]
 
 [[package]]

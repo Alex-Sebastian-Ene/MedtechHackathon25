@@ -27,14 +27,14 @@ DEFAULT_EMOTION_LABELS: Tuple[str, ...] = (
     "neutral",
 )
 
-EMOTION_SCORES: Dict[str, int] = {
-    "angry": 2,
-    "disgust": 3,
-    "fear": 3,
-    "sad": 2,
-    "neutral": 5,
-    "surprise": 7,
-    "happy": 9,
+EMOTION_SCORES: Dict[str, float] = {
+    "angry": 1.5,
+    "disgust": 2.0,
+    "fear": 2.5,
+    "sad": 1.8,
+    "neutral": 5.0,
+    "surprise": 6.5,
+    "happy": 8.5,
 }
 
 
@@ -93,12 +93,12 @@ class FaceRegistry:
 
 
 class PretrainedEmotionClassifier:
-    """Uses a pretrained FER2013 model served via torch.hub."""
+    """Uses a pretrained emotion recognition model with better accuracy."""
 
     def __init__(
         self,
         device: Optional[str] = None,
-        model_name: str = "dima806/facial_emotions_image_detection",
+        model_name: str = "trpakov/vit-face-expression",
     ) -> None:
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         torch_compiler = getattr(torch, "compiler", None)
@@ -150,8 +150,18 @@ class FaceEmotionRecognizer:
             device=self.device,
             keep_all=True,
         )
-        self.encoder = FaceEncoder(device=self.device)
-        self.registry = FaceRegistry(self.encoder)
+        self.encoder: Optional[FaceEncoder] = None
+        self.registry: Optional[FaceRegistry] = None
+        try:
+            self.encoder = FaceEncoder(device=self.device)
+            self.registry = FaceRegistry(self.encoder)
+        except NotImplementedError:
+            # Some environments (meta device) cannot materialize pretrained weights.
+            self.encoder = None
+            self.registry = None
+        except Exception:
+            self.encoder = None
+            self.registry = None
         if emotion_checkpoint:
             self.emotion_model = self._load_custom_emotion_model(emotion_checkpoint)
         else:
@@ -201,7 +211,10 @@ class FaceEmotionRecognizer:
         results: List[Dict[str, object]] = []
         for detected in detections:
             face_tensor = detected.tensor
-            identity, confidence = self.registry.identify(face_tensor)
+            identity = "unknown"
+            confidence = 0.0
+            if self.registry:
+                identity, confidence = self.registry.identify(face_tensor)
             emotion, emotion_score = self._classify_emotion(face_tensor)
             results.append(
                 {
@@ -222,6 +235,12 @@ class FaceEmotionRecognizer:
         return self.analyze_image(image)
 
     def register_identity(self, name: str, image_paths: Iterable[Path]) -> None:
+        if self.registry is None or self.encoder is None:
+            try:
+                self.encoder = FaceEncoder(device=self.device)
+                self.registry = FaceRegistry(self.encoder)
+            except Exception as exc:
+                raise RuntimeError("Identity recognition is not available in this environment.") from exc
         tensors: List[torch.Tensor] = []
         for path in image_paths:
             image = Image.open(path).convert("RGB")
@@ -232,22 +251,59 @@ class FaceEmotionRecognizer:
         self.registry.register(name, tensors)
 
 
-def score_results(results: List[Dict[str, object]]) -> int:
+def score_results(results: List[Dict[str, object]]) -> float:
+    """
+    Calculate mood score using a more sophisticated approach that considers:
+    - Multiple emotion probabilities (not just top emotion)
+    - Confidence-weighted scoring
+    - Emotional intensity modulation
+    """
     if not results:
-        return 5
-    total = 0.0
-    weight = 0.0
+        return 5.0
+    
+    total_score = 0.0
+    total_weight = 0.0
+    
     for item in results:
-        emotion = str(item.get("emotion", "neutral")).lower()
-        confidence = float(item.get("emotion_confidence", 1.0))
-        score = EMOTION_SCORES.get(emotion, 5)
-        total += score * confidence
-        weight += confidence
-    average = total / weight if weight else 5.0
-    return max(1, min(10, round(average)))
+        # Check if we have detailed emotion scores
+        if 'all_emotion_scores' in item:
+            # Use all emotion probabilities for more nuanced scoring
+            emotion_scores = item.get('all_emotion_scores', {})
+            
+            for emotion, probability in emotion_scores.items():
+                emotion_name = str(emotion).lower()
+                base_score = EMOTION_SCORES.get(emotion_name, 5.0)
+                
+                # Apply non-linear confidence scaling for more realistic mood assessment
+                # High confidence emotions have more impact, but not linearly
+                confidence_factor = probability ** 0.8
+                
+                total_score += base_score * confidence_factor
+                total_weight += confidence_factor
+        else:
+            # Fallback to single emotion scoring
+            emotion = str(item.get("emotion", "neutral")).lower()
+            confidence = float(item.get("emotion_confidence", 1.0))
+            score = EMOTION_SCORES.get(emotion, 5.0)
+            
+            # Apply confidence scaling
+            confidence_factor = confidence ** 0.8
+            total_score += score * confidence_factor
+            total_weight += confidence_factor
+    
+    if total_weight == 0:
+        return 5.0
+    
+    average = total_score / total_weight
+    
+    # Apply slight compression to avoid extreme scores
+    # This makes the scale more realistic (less likely to hit 1 or 10)
+    compressed = 5.0 + (average - 5.0) * 0.85
+    
+    return max(1.0, min(10.0, round(compressed, 1)))
 
 
-def capture_and_rate(camera_index: int = 0) -> Tuple[List[Dict[str, object]], int]:
+def capture_and_rate(camera_index: int = 0) -> Tuple[List[Dict[str, object]], float]:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     recognizer = FaceEmotionRecognizer(device=device)
     camera = cv2.VideoCapture(camera_index)
@@ -262,11 +318,11 @@ def capture_and_rate(camera_index: int = 0) -> Tuple[List[Dict[str, object]], in
     return findings, mood
 
 
-def draw_detections(frame: np.ndarray, detections: List[Dict[str, object]], mood: int) -> np.ndarray:
+def draw_detections(frame: np.ndarray, detections: List[Dict[str, object]], mood: float) -> np.ndarray:
     overlay = frame.copy()
     cv2.putText(
         overlay,
-        f"Mood: {mood}/10",
+        f"Mood: {mood:.1f}/10",
         (10, 30),
         cv2.FONT_HERSHEY_SIMPLEX,
         0.8,
