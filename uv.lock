@@ -972,11 +972,8 @@ dependencies = [
     { name = "safetensors" },
     { name = "scikit-learn" },
     { name = "streamlit" },
-<<<<<<< HEAD
-    { name = "streamlit-geolocation" },
-=======
     { name = "streamlit-calendar" },
->>>>>>> 3d6fc5e8df1536e623ada6652976e4e105ce74ed
+    { name = "streamlit-geolocation" },
     { name = "streamlit-webrtc" },
     { name = "torch" },
     { name = "torchvision" },
@@ -1015,11 +1012,8 @@ requires-dist = [
     { name = "safetensors", specifier = ">=0.4" },
     { name = "scikit-learn", specifier = ">=1.4" },
     { name = "streamlit", specifier = ">=1.37" },
-<<<<<<< HEAD
-    { name = "streamlit-geolocation", specifier = ">=0.0.10" },
-=======
     { name = "streamlit-calendar", specifier = ">=1.4.0" },
->>>>>>> 3d6fc5e8df1536e623ada6652976e4e105ce74ed
+    { name = "streamlit-geolocation", specifier = ">=0.0.10" },
     { name = "streamlit-webrtc", specifier = ">=0.63.11" },
     { name = "torch", specifier = ">=2.2,<2.4" },
     { name = "torchvision", specifier = ">=0.17,<0.18" },
@@ -2047,26 +2041,27 @@ wheels = [
 ]
 
 [[package]]
-<<<<<<< HEAD
-name = "streamlit-geolocation"
-version = "0.0.10"
-=======
 name = "streamlit-calendar"
 version = "1.4.0"
->>>>>>> 3d6fc5e8df1536e623ada6652976e4e105ce74ed
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "streamlit" },
 ]
-<<<<<<< HEAD
-sdist = { url = "https://files.pythonhosted.org/packages/86/e2/f3d7da8d0e9892a5f20e53603b08a71cdb98a813193213b2cbcc3bb0e5f3/streamlit_geolocation-0.0.10.tar.gz", hash = "sha256:0617a39aa26a6019f9b6989e31a310742fe5fe1728321474cf8b5f03a7146d4c", size = 795952, upload-time = "2023-11-18T15:32:28.958Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/2b/64/619d0332c50ecb65a5c03c63e78c06855325c8f605459168aa96a06ce042/streamlit_geolocation-0.0.10-py3-none-any.whl", hash = "sha256:e9d9eb61238db468076ef374027a1691fa6696f44d4e4472b0123df03dc0d9ea", size = 802665, upload-time = "2023-11-18T15:32:24.798Z" },
-=======
 sdist = { url = "https://files.pythonhosted.org/packages/ab/da/d394612a18e8ee3410c088035a7b804e56c0318e0e9169a150158723910d/streamlit_calendar-1.4.0.tar.gz", hash = "sha256:47bd4fe839fdcbc7f334cb3aec0b83556558357562bb58c5a9fdfe11cd4e7b80", size = 1264452, upload-time = "2025-07-24T13:14:50.032Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/09/1b/76be5aa2aeacc34bf0022680e3e694bcdd6c812b93b122d617513ebdc9bc/streamlit_calendar-1.4.0-py3-none-any.whl", hash = "sha256:bba0fbd47c0910b8eb15fc3689d3f66a097bf26818da36a3c1737e00fe995966", size = 1276322, upload-time = "2025-07-24T13:14:48.629Z" },
->>>>>>> 3d6fc5e8df1536e623ada6652976e4e105ce74ed
+]
+
+[[package]]
+name = "streamlit-geolocation"
+version = "0.0.10"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "streamlit" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/86/e2/f3d7da8d0e9892a5f20e53603b08a71cdb98a813193213b2cbcc3bb0e5f3/streamlit_geolocation-0.0.10.tar.gz", hash = "sha256:0617a39aa26a6019f9b6989e31a310742fe5fe1728321474cf8b5f03a7146d4c", size = 795952, upload-time = "2023-11-18T15:32:28.958Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2b/64/619d0332c50ecb65a5c03c63e78c06855325c8f605459168aa96a06ce042/streamlit_geolocation-0.0.10-py3-none-any.whl", hash = "sha256:e9d9eb61238db468076ef374027a1691fa6696f44d4e4472b0123df03dc0d9ea", size = 802665, upload-time = "2023-11-18T15:32:24.798Z" },
 ]
 
 [[package]]

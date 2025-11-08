@@ -34,40 +34,114 @@ VALUES (:session_id, :timestamp, :lat, :long);
 
 LOC_DOWNLOAD_QUERY = """
 SELECT gp.longitude, gp.latitude, gp.recorded_at
-FROM gps_points gp
-JOIN gps_sessions gs ON gp.session_id = gs.session_id
+FROM gps_points AS gp
+JOIN gps_sessions AS gs ON gp.session_id = gs.session_id
 WHERE gs.user_id = :userid 
   AND gp.recorded_at >= :date_scope
-ORDER BY gp.recorded_at ASC;
+ORDER BY gp.recorded_at ASC
 """
 
+# Login protection
+if 'user_id' not in st.session_state:
+    st.warning("Please log in to access this page.")
+    st.switch_page("app.py")
+    st.stop()
+
 st.title("Places you've been")
+st.write(f"Welcome, {st.session_state.get('username', 'User')}!")
 
 userid = st.session_state['user_id']
+
+# Button to trigger location refresh
+location_button = st.button("Refresh My Location", key="get_location")
+
+if location_button:
+    st.rerun()
+
 current_loc = geo()
-timestamp = datetime.now()
-latitude = False
-longitude = False
-session_id = []
+print (current_loc)
 
-with get_connection() as conn:
-    session_id = conn.execute(LOC_GET_SESSION_QUERY, {"userid": userid}).fetchall()
+timestamp = datetime.now().isoformat()
+latitude = None
+longitude = None
 
-#location successfully retrieved?
-if current_loc:
+# Debug: Show raw location data
+with st.expander("DEBUG - Raw Location Data", expanded=False):
+    st.json(current_loc)
+    st.write(f"Type of current_loc: {type(current_loc)}")
+    st.write(f"Is dict: {isinstance(current_loc, dict)}")
+    if current_loc:
+        st.write(f"Keys: {current_loc.keys() if isinstance(current_loc, dict) else 'N/A'}")
 
+# Display current location status
+st.write(f"DEBUG Step 1: current_loc exists = {bool(current_loc)}, is dict = {isinstance(current_loc, dict)}")
+
+if current_loc and isinstance(current_loc, dict):
     latitude = current_loc.get('latitude')
     longitude = current_loc.get('longitude')
-
-    if latitude and longitude:
-        #update location
-        #TO DO : upload current_loc data to SQL database
-        
-        with get_connection() as conn:  # ✅ added ()
-            conn.execute(LOC_UPDATE_SESSIONS_QUERY, {"userid": userid, "timestamp": timestamp})
+    
+    st.write(f"DEBUG Step 2: Parsed - Lat={repr(latitude)} (type={type(latitude).__name__}), Long={repr(longitude)} (type={type(longitude).__name__})")
+    
+    # The library might return None - let's check if they are valid
+    lat_valid = latitude is not None and latitude != 0
+    long_valid = longitude is not None and longitude != 0
+    
+    st.write(f"DEBUG Step 3: lat_valid={lat_valid}, long_valid={long_valid}")
+    
+    # Try to convert to float if they're valid
+    if lat_valid and long_valid:
+        try:
+            lat_float = float(latitude)
+            long_float = float(longitude)
             
-            #session_id[-1] returns most recent sessionid 
-            conn.execute(LOC_UPDATE_POINTS_QUERY, {"session_id": session_id[-1], "timestamp": timestamp, "lat": latitude, "long": longitude})
+            st.success(f"Location detected: {lat_float:.6f}, {long_float:.6f}")
+            
+            # Save location to database
+            st.write(f"DEBUG Step 4: Attempting database save...")
+            st.write(f"  - userid: {userid}")
+            st.write(f"  - timestamp: {timestamp}")
+            st.write(f"  - lat: {lat_float}, long: {long_float}")
+            
+            try:
+                with get_connection() as conn:
+                    # Create new session
+                    st.write("DEBUG: Executing session insert...")
+                    cursor = conn.execute(LOC_UPDATE_SESSIONS_QUERY, {"userid": userid, "timestamp": timestamp})
+                    session_id = cursor.lastrowid
+                    st.write(f"DEBUG: Session created with ID: {session_id}")
+                    
+                    # Save GPS point
+                    st.write("DEBUG: Executing point insert...")
+                    conn.execute(
+                        LOC_UPDATE_POINTS_QUERY, 
+                        {"session_id": session_id, "timestamp": timestamp, "lat": lat_float, "long": long_float}
+                    )
+                    st.write("DEBUG: Point inserted")
+                    
+                    # Commit
+                    st.write("DEBUG: Committing transaction...")
+                    conn.commit()
+                    st.write("DEBUG: Commit successful")
+                    
+                    st.success(f"Location saved to database! (Session ID: {session_id})")
+            except Exception as e:
+                st.error(f"Database error: {e}")
+                st.exception(e)
+        except (ValueError, TypeError) as e:
+            st.error(f"Could not convert coordinates to numbers: {e}")
+            st.write(f"Lat value: {repr(latitude)}, Long value: {repr(longitude)}")
+    else:
+        st.warning("Location data is None or zero")
+        st.write(f"Lat: {repr(latitude)}, Long: {repr(longitude)}")
+        st.info("""
+        **Location not available.** This can happen because:
+        - Browser hasn't received GPS signal yet (wait a few seconds and refresh)
+        - Location services disabled on your device
+        - Browser blocked location access
+        - Running on HTTP instead of HTTPS (some browsers require secure connection)
+        """)
+else:
+    st.warning("Waiting for location data from browser...")
 
 #date scopes
 today = datetime.combine(date.today(), datetime.min.time())
@@ -87,12 +161,37 @@ scope = st.select_slider(
     ]
 )
 
+# Debug: Show what we're querying
+selected_date = date_scope[scope]
+st.write(f"Searching for locations after: {selected_date}")
+
 #download data
 map_points = []
 
-with get_connection() as conn:  # ✅ added ()
-    map_points = conn.execute(LOC_DOWNLOAD_QUERY, {"userid": userid, "date_scope": date_scope[scope]}).fetchall()  # ✅ fetchall()
-
+with get_connection() as conn:
+    # Debug: Check total points in database
+    total_points = conn.execute(
+        "SELECT COUNT(*) FROM gps_points gp JOIN gps_sessions gs ON gp.session_id = gs.session_id WHERE gs.user_id = ?",
+        (userid,)
+    ).fetchone()[0]
+    
+    st.write(f"Total GPS points in database for your account: {total_points}")
+    
+    # Debug: Show all timestamps in database
+    if total_points > 0:
+        all_timestamps = conn.execute(
+            "SELECT gp.recorded_at FROM gps_points gp JOIN gps_sessions gs ON gp.session_id = gs.session_id WHERE gs.user_id = ? ORDER BY gp.recorded_at DESC",
+            (userid,)
+        ).fetchall()
+        st.write("Timestamps in database:", [t[0] for t in all_timestamps])
+    
+    # Get filtered points
+    map_points = conn.execute(
+        LOC_DOWNLOAD_QUERY, 
+        {"userid": userid, "date_scope": selected_date.isoformat()}
+    ).fetchall()
+    
+    st.write(f"Points matching {scope}: {len(map_points)}") 
 # Convert to DataFrame
 df = pd.DataFrame(map_points, columns=['lon', 'lat'])
 

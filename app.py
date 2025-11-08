@@ -1,10 +1,5 @@
 import sqlite3
 import streamlit as st
-<<<<<<< HEAD
-from databases.database import get_connection, initialize_database, MOOD_SUMMARY_QUERY
-
-initialize_database()
-=======
 from databases.database import get_connection, initialize_database
 from datetime import datetime
 
@@ -18,7 +13,6 @@ if "user_id" not in st.session_state:
     st.session_state.user_id = None
 if "username" not in st.session_state:
     st.session_state.username = None
->>>>>>> 3d6fc5e8df1536e623ada6652976e4e105ce74ed
 
 st.title("Login Page")
 
@@ -41,13 +35,6 @@ with get_connection() as conn:
 
 # Login button
 if st.button("Login"):
-<<<<<<< HEAD
-    if data != []:
-        userid = data[0]
-        st.session_state['user_id'] = userid
-        st.success("Login successful! Redirecting...")
-        st.switch_page("pages/home.py")
-=======
     if username and password:
         with get_connection() as conn:
             # Check if user exists
@@ -77,6 +64,5 @@ if st.button("Login"):
                     st.switch_page("pages/home.py")
                 except sqlite3.IntegrityError:
                     st.error("Invalid username or password")
->>>>>>> 3d6fc5e8df1536e623ada6652976e4e105ce74ed
     else:
         st.error("Please enter both username and password")

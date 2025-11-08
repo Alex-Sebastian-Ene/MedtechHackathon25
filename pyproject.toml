@@ -13,16 +13,13 @@ dependencies = [
   "streamlit-calendar>=1.4.0",
   "opencv-python>=4.10",
   "streamlit-webrtc >= 0.63.11",
-<<<<<<< HEAD
-  "streamlit_geolocation >= 0.0.10"
-=======
+  "streamlit_geolocation >= 0.0.10",
   "torch>=2.2,<2.4",
   "torchvision>=0.17,<0.18",
   "facenet-pytorch>=2.6",
   "transformers>=4.44",
   "safetensors>=0.4",
   "plotly>=6.4.0",
->>>>>>> 3d6fc5e8df1536e623ada6652976e4e105ce74ed
 ]
 
 [build-system]
