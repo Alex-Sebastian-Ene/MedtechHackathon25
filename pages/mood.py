@@ -8,9 +8,8 @@ current_file = Path(__file__)
 # Construct path to CSV
 csv_path = current_file.parent.parent / 'databases' / 'mood.csv'
 
-#dataframe to print
+#dataframe to process
 df = pd.read_csv(csv_path)
 
-#debug
-print(df.to_string())
+
 
