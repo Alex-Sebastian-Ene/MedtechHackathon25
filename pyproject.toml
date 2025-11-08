@@ -11,7 +11,15 @@ dependencies = [
   "matplotlib>=3.8",
   "scikit-learn>=1.4",
   "streamlit-calendar>=1.4.0"
-]
+  "opencv-python>=4.10",
+  "streamlit-webrtc >= 0.63.11",
+  "torch>=2.2,<2.4",
+  "torchvision>=0.17,<0.18",
+  "facenet-pytorch>=2.6",
+  "transformers>=4.44",
+  "safetensors>=0.4",
+  "plotly>=6.4.0",
+
 
 [build-system]
 requires = ["setuptools>=61"]
@@ -25,8 +33,12 @@ dev = [
 ]
 
 ml-torch = [
-  "torch>=2.3",
-  "torchvision>=0.18",
+  "torch>=2.2,<2.4",
+  "torchvision>=0.17,<0.18",
+  "facenet-pytorch>=2.6",
+  "opencv-python>=4.10",
+  "transformers>=4.44",
+  "safetensors>=0.4",
 ]
 
 ml-tf = [
@@ -34,8 +46,12 @@ ml-tf = [
 ]
 
 llm-ollama = [
-  "ollama>=0.1.9",
+  "ollama>=0.2.0",
 ]
 
 [tool.uv]
 default-groups = ["dev"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["medtech_hackathon25"]
