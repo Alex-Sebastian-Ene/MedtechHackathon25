@@ -20,6 +20,19 @@ st.title("Login Page")
 username = st.text_input("Username", placeholder=" John Smith")
 password = st.text_input("Password", type="password")
 
+
+USER_RETRIEVE = """
+SELECT
+	user_id
+FROM users
+WHERE username = :username
+AND 
+password_hash = :password;
+"""
+with get_connection() as conn:
+    data = conn.execute(USER_RETRIEVE, { "username": username, "password": password}).fetchall()
+
+
 # Login button
 if st.button("Login"):
     if username and password:
