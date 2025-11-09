@@ -155,6 +155,27 @@ SCHEMA_STATEMENTS: Iterable[str] = (
 	);
 	""",
 	"""
+	CREATE TABLE IF NOT EXISTS chat_sessions (
+		session_id   INTEGER PRIMARY KEY AUTOINCREMENT,
+		user_id      INTEGER NOT NULL,
+		started_at   TEXT    NOT NULL,
+		ended_at     TEXT,
+		mood_score   INTEGER,
+		title        TEXT,
+		FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+	);
+	""",
+	"""
+	CREATE TABLE IF NOT EXISTS chat_messages (
+		message_id   INTEGER PRIMARY KEY AUTOINCREMENT,
+		session_id   INTEGER NOT NULL,
+		role         TEXT    NOT NULL CHECK(role IN ('user', 'assistant', 'system')),
+		content      TEXT    NOT NULL,
+		timestamp    TEXT    NOT NULL,
+		FOREIGN KEY (session_id) REFERENCES chat_sessions(session_id) ON DELETE CASCADE
+	);
+	""",
+	"""
 	CREATE INDEX IF NOT EXISTS idx_gps_points_session_time ON gps_points(session_id, recorded_at);
 	""",
 	"""
@@ -171,6 +192,12 @@ SCHEMA_STATEMENTS: Iterable[str] = (
 	""",
 	"""
 	CREATE INDEX IF NOT EXISTS idx_video_emotion_frames_recording ON video_emotion_frames(recording_id, timestamp);
+	""",
+	"""
+	CREATE INDEX IF NOT EXISTS idx_chat_sessions_user_time ON chat_sessions(user_id, started_at);
+	""",
+	"""
+	CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages(session_id, timestamp);
 	""",
 )
 
@@ -510,3 +537,97 @@ def get_user_questionnaire_responses(user_id: int, questionnaire_id: int) -> lis
 			}
 			for row in rows
 		]
+
+
+def create_chat_session(user_id: int, title: str = "New Chat") -> int:
+	"""Create a new chat session."""
+	from datetime import datetime
+	
+	with get_connection() as conn:
+		cursor = conn.execute(
+			"INSERT INTO chat_sessions (user_id, started_at, title) VALUES (?, ?, ?)",
+			(user_id, datetime.now().isoformat(), title)
+		)
+		conn.commit()
+		return cursor.lastrowid
+
+
+def save_chat_message(session_id: int, role: str, content: str) -> int:
+	"""Save a chat message to the database."""
+	from datetime import datetime
+	
+	with get_connection() as conn:
+		cursor = conn.execute(
+			"INSERT INTO chat_messages (session_id, role, content, timestamp) VALUES (?, ?, ?, ?)",
+			(session_id, role, content, datetime.now().isoformat())
+		)
+		conn.commit()
+		return cursor.lastrowid
+
+
+def get_chat_session_messages(session_id: int) -> list[dict]:
+	"""Retrieve all messages for a chat session."""
+	with get_connection() as conn:
+		rows = conn.execute(
+			"""
+			SELECT message_id, role, content, timestamp
+			FROM chat_messages
+			WHERE session_id = ?
+			ORDER BY timestamp ASC
+			""",
+			(session_id,)
+		).fetchall()
+		
+		return [
+			{
+				"message_id": row[0],
+				"role": row[1],
+				"content": row[2],
+				"timestamp": row[3]
+			}
+			for row in rows
+		]
+
+
+def get_user_chat_sessions(user_id: int, limit: int = 20) -> list[dict]:
+	"""Get all chat sessions for a user."""
+	with get_connection() as conn:
+		rows = conn.execute(
+			"""
+			SELECT session_id, title, started_at, ended_at, mood_score
+			FROM chat_sessions
+			WHERE user_id = ?
+			ORDER BY started_at DESC
+			LIMIT ?
+			""",
+			(user_id, limit)
+		).fetchall()
+		
+		return [
+			{
+				"session_id": row[0],
+				"title": row[1],
+				"started_at": row[2],
+				"ended_at": row[3],
+				"mood_score": row[4]
+			}
+			for row in rows
+		]
+
+
+def update_chat_session_mood(session_id: int, mood_score: int) -> None:
+	"""Update the mood score for a chat session."""
+	from datetime import datetime
+	
+	with get_connection() as conn:
+		conn.execute(
+			"UPDATE chat_sessions SET mood_score = ?, ended_at = ? WHERE session_id = ?",
+			(mood_score, datetime.now().isoformat(), session_id)
+		)
+		conn.commit()
+
+
+def get_chat_history_for_ollama(session_id: int) -> list[dict]:
+	"""Get chat history formatted for Ollama ChatSession."""
+	messages = get_chat_session_messages(session_id)
+	return [{"role": msg["role"], "content": msg["content"]} for msg in messages]
