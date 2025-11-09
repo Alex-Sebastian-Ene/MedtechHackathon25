@@ -137,8 +137,6 @@ text_container.text_area(
     label_visibility="collapsed"
 )
 
-st.write(st.session_state)
-
 # form submission button
 submit = form.form_submit_button(
     label="Submit"
