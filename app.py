@@ -32,9 +32,11 @@ password_hash = :password;
 with get_connection() as conn:
     data = conn.execute(USER_RETRIEVE, { "username": username, "password": password}).fetchall()
 
+hBtnContainer=st.container(horizontal=True)
+
 
 # Login button
-if st.button("Login"):
+if hBtnContainer.button("Login"):
     if username and password:
         with get_connection() as conn:
             # Check if user exists
@@ -66,3 +68,6 @@ if st.button("Login"):
                     st.error("Invalid username or password")
     else:
         st.error("Please enter both username and password")
+
+if hBtnContainer.button("Don't have an account? Sign up!",type="tertiary"):
+    st.switch_page("pages/sign_up.py")
