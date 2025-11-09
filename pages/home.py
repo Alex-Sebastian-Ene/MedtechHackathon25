@@ -40,7 +40,7 @@ with tabHome:
     )
 
     if btnForm:
-        st.switch_page("pages/form.py")
+        st.switch_page("pages/Form.py")
 
     horizContainer = st.container(horizontal=True)
     
@@ -50,7 +50,7 @@ with tabHome:
     )
 
     if btnMood:
-        st.switch_page("pages/mood.py")
+        st.switch_page("pages/Mood Tracker.py")
 
 
     btnGPS = horizContainer.button(
@@ -59,7 +59,7 @@ with tabHome:
     )
 
     if btnGPS:
-        st.switch_page("pages/gps.py")
+        st.switch_page("pages/Activity Tracker.py")
 
     
 
@@ -132,7 +132,7 @@ with tabHome:
         event_start = clicked_event["start"]
 
         st.session_state.current_event=clicked_event
-        st.switch_page("pages/form.py")
+        st.switch_page("pages/Form.py")
 
 with tabLLM:
     # Title and user info

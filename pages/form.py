@@ -32,6 +32,19 @@ from medtech_hackathon25.ml.ollama_client import get_response
 if "user_id" not in st.session_state:
     st.session_state.user_id = 1  # Default user for testing
 
+if "form_submitted" not in st.session_state:
+    st.session_state.form_submitted = False
+    
+if "redirect_page" not in st.session_state:
+    st.session_state.redirect_page = None
+
+# Handle redirects
+if st.session_state.redirect_page:
+    page = st.session_state.redirect_page
+    st.session_state.redirect_page = None
+    st.session_state.form_submitted = False
+    st.switch_page(page)
+
 # title
 st.title("Mood and Anxiety Tracking Form")
 
@@ -366,6 +379,14 @@ if submit:
                     
                     # Add questions to questionnaire
                     for idx, question in enumerate(questions_list):
+                        # Map UI question types to database allowed types
+                        question_type_map = {
+                            "select_slider": "scale",
+                            "feedback": "scale",
+                            "pills": "multiple_choice"
+                        }
+                        db_question_type = question_type_map.get(question["type"], question["type"])
+                        
                         conn.execute(
                             """
                             INSERT INTO questionnaire_questions 
@@ -375,7 +396,7 @@ if submit:
                             (
                                 questionnaire_id,
                                 question["title"],
-                                question["type"],
+                                db_question_type,
                                 str(question.get("options", [])),
                                 idx,
                                 1
@@ -519,15 +540,24 @@ if submit:
                     with st.expander("🤖 AI Analysis Details"):
                         st.write(llm_explanation)
                 
-                # Option to return home or view history
-                col_a, col_b = st.columns(2)
-                with col_a:
-                    if st.button("🏠 Return Home", use_container_width=True):
-                        st.switch_page("pages/home.py")
-                with col_b:
-                    if st.button("📈 View Mood History", use_container_width=True):
-                        st.switch_page("pages/mood.py")
+                # Mark form as submitted
+                st.session_state.form_submitted = True
                         
         except Exception as e:
             st.error(f"Error saving assessment: {e}")
             st.exception(e)
+
+# Show navigation buttons after successful submission (outside form context)
+if st.session_state.form_submitted:
+    st.markdown("---")
+    st.subheader("What would you like to do next?")
+    
+    col_a, col_b = st.columns(2)
+    with col_a:
+        if st.button("🏠 Return Home", key="nav_home", use_container_width=True):
+            st.session_state.redirect_page = "pages/Home.py"
+            st.rerun()
+    with col_b:
+        if st.button("📈 View Mood History", key="nav_mood", use_container_width=True):
+            st.session_state.redirect_page = "pages/Mood Tracker.py"
+            st.rerun()
