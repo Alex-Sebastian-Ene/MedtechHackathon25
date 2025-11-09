@@ -4,19 +4,90 @@ import pandas as pd
 import numpy as np
 
 # title
-st.title("Example Title")
+st.title("Depression Form")
 
 questions_list=[
     {
-        "title": "How depressed are you feeling?",
+        "title": "Today I have lost my appetite:",
         "type": "select_slider",
-        "options": [1,2,3,4,5,6,7,8,9,10],
+        "options": ["Not at all", "Slightly", "Moderately","Quite a bit","Completely"],
+        "value": "Not at all",
     },
     {
-        "title": "On a scale of frown to smile, how are you doing?",
+        "title": "Today I feel like a failure:",
+        "type": "select_slider",
+        "options": ["Not at all", "Slightly", "Moderately","Quite a bit","Completely"],
+        "value": "Not at all",
+    },
+    {
+        "title": "Today I feel like I let myself down/I feel like I let my family down:",
+        "type": "select_slider",
+        "options": ["Not at all", "Slightly", "Moderately","Quite a bit","Completely"],
+        "value": "Not at all",
+    },
+    {
+        "title": "I want to hurt myself:",
+        "type": "select_slider",
+        "options": ["Not at all", "Once a week", "Every other day","Nearly every day","Every day"],
+        "value": "Not at all",
+    },
+    {
+        "title": "I feel like I am overeating:",
+        "type": "select_slider",
+        "options": ["Not at all", "Slightly", "Moderately","Quite a bit","Completely"],
+        "value": "Not at all",
+    },
+    {
+        "title": "How energetic do you feel?",
         "type": "feedback",
         "options": "faces",
     },
+    {
+        "title": "I am having trouble concentrating on things:",
+        "type": "select_slider",
+        "options": ["Not at all", "Slightly", "Moderately","Quite a bit","Completely"],
+        "value": "Not at all",
+    },
+    {
+        "title": "I have trouble sleeping:",
+        "type": "select_slider",
+        "options": ["Not at all", "Slightly", "Moderately","Quite a bit","Completely"],
+        "value": "Not at all",
+    },
+    {
+        "title": "I have little interest or pleasure in doing things:",
+        "type": "select_slider",
+        "options": ["Not at all", "Slightly", "Moderately","Quite a bit","Completely"],
+        "value": "Not at all",
+    },
+    {
+        "title": "I am moving or speaking so slowly that other people have noticed:",
+        "type": "select_slider",
+        "options": ["Not at all", "Slightly", "Moderately","Quite a bit","Completely"],
+        "value": "Not at all",
+    },
+    {
+        "title": "I am losing weight unintentionally",
+        "type": "select_slider",
+        "options": ["Not at all", "Slightly", "Moderately","Quite a bit","Completely"],
+        "value": "Not at all",
+    },
+    {
+        "title": "I am feeling agitated:",
+        "type": "select_slider",
+        "options": ["Not at all", "Slightly", "Moderately","Quite a bit","Completely"],
+        "value": "Not at all",
+    },
+    {
+        "title":"I am feeling these moods:",
+        "type":"pills",
+        "options":["Happy","Hopeful","Supported","Valued","Calm"],
+    },
+    {
+        "title":"I am feeling these moods:",
+        "type":"pills",
+        "options":["Sad","Hopeless","Helpless","Worthless","Anxious"],
+    }
 ]
 
 # form containing each question, including text area
@@ -39,13 +110,21 @@ for i,q in enumerate(questions_list):
                 key="option "+str(i),
                 options=q["options"],
                 label_visibility="collapsed",
-                value=5,
+                value=q["value"],
             )
         case "feedback":
             c.feedback(
                 key="option "+str(i),
                 options=q["options"],
                 default=2,
+            )
+        case "pills":
+            c.pills(
+                "",
+                key="option "+str(i),
+                options=q["options"],
+                selection_mode="multi",
+                label_visibility="collapsed",
             )
 
 # text area element

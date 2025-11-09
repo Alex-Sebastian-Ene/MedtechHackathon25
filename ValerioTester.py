@@ -110,7 +110,6 @@ state = calendar(
     key="timegrid",
 )
 
-beenClicked=False
 # Handle calendar interactions
 if state.get("eventClick"):
     # Get clicked event details
