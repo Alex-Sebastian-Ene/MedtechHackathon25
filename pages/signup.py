@@ -29,7 +29,7 @@ if hBtnContainer.button("Sign Up"):
             conn.execute(SIGN_UP_QUERY, {"username" : username, "password" : password})
 
 
-        st.switch_page("pages/formView.py")
+        st.switch_page("pages/form.py")
 
 if hBtnContainer.button("Back to Login",type="tertiary"):
-    st.switch_page("app.py")
+    st.switch_page("login.py")

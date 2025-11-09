@@ -16,10 +16,52 @@ st.set_page_config(page_title="Indigo", page_icon="🟦")
 
 tabHome, tabTasks, tabLLM = st.tabs(["Home","Tasks","Chatbot"])
 
+with tabTasks:
+    
+    st.title("Daily Activities Page")
+    st.divider()
+
+    st.checkbox(label="Contact family member") # Get them to contact family
+    st.checkbox(label="Spend time with a friend") # Get them to contact friends
+    st.checkbox(label="Take a walk in the Southampton Common") # Get them to go outdoors
+    st.checkbox(label="Spend 10 minutes doing yoga") # Get them to exercise
+    st.checkbox(label="Spend some time doing some reading") # Get them to do some hobbies
+    st.checkbox(label= "Try doing colouring therapy") # Get them to attempt at-home therapy activities
+
+
 with tabHome:
     # title
     st.title("Home Page")
     st.divider()
+
+    btnForm = st.button(
+        "Log Your Mood now!",
+        width="stretch",
+    )
+
+    if btnForm:
+        st.switch_page("pages/form.py")
+
+    horizContainer = st.container(horizontal=True)
+    
+    btnMood = horizContainer.button(
+        "View Your Mood History",
+        width="stretch",
+    )
+
+    if btnMood:
+        st.switch_page("pages/mood.py")
+
+
+    btnGPS = horizContainer.button(
+        "View Your Activity History",
+        width="stretch",
+    )
+
+    if btnGPS:
+        st.switch_page("pages/gps.py")
+
+    
 
     events = [
         {
@@ -90,9 +132,14 @@ with tabHome:
         event_start = clicked_event["start"]
 
         st.session_state.current_event=clicked_event
-        st.switch_page("pages/formView.py")
+        st.switch_page("pages/form.py")
 
 with tabLLM:
+    # Title and user info
+    st.title("AI Health Assistant")
+    
+    st.divider()
+
     # Check if user is logged in
     if "user_id" not in st.session_state or st.session_state.user_id is None:
         st.warning("Please log in to use the chat.")
@@ -100,12 +147,8 @@ with tabLLM:
             st.switch_page("app.py")
         st.stop()
 
-    # Title and user info
-    st.title("AI Health Assistant")
-    
-    st.divider()
-
     st.caption(f"👤 Logged in as: {st.session_state.get('username', 'Unknown')}")
+
 
     # Initialize chat session
     if "chat_session_id" not in st.session_state:
@@ -211,14 +254,3 @@ with tabLLM:
         except Exception as e:
             st.error(f"Error communicating with AI: {str(e)}")
             st.info("Make sure Ollama is running. Run `ollama serve` in your terminal.")
-
-with tabTasks:
-    st.title("Tasks")
-    st.divider()
-
-    st.checkbox(label= "Call your Mum") # Make them contact family/friends
-    st.checkbox(label= "Go Shopping") # Make them go outside
-    st.checkbox(label= "Do some streches") # Make them exercises
-    st.checkbox(label = "Go skateboarding") #Do hombbies
-    st.checkbox(label= "Do some colouring") #color therapy
-

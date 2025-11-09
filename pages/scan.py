@@ -111,7 +111,7 @@ _init_session_state()
 if "user_id" not in st.session_state or st.session_state.user_id is None:
     st.warning("Please log in to use the emotion scanner.")
     if st.button("Go to Login"):
-        st.switch_page("app.py")
+        st.switch_page("login.py")
     st.stop()
 
 # Display logged-in user

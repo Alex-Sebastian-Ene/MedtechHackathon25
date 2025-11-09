@@ -70,4 +70,4 @@ if hBtnContainer.button("Login"):
         st.error("Please enter both username and password")
 
 if hBtnContainer.button("Don't have an account? Sign up!",type="tertiary"):
-    st.switch_page("pages/sign_up.py")
+    st.switch_page("pages/signup.py")

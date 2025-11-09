@@ -11,7 +11,6 @@ Features:
 """
 
 import streamlit as st
-from streamlit_calendar import calendar
 import pandas as pd
 import numpy as np
 from datetime import datetime
@@ -524,7 +523,7 @@ if submit:
                 col_a, col_b = st.columns(2)
                 with col_a:
                     if st.button("🏠 Return Home", use_container_width=True):
-                        st.switch_page("pages/homePage.py")
+                        st.switch_page("pages/home.py")
                 with col_b:
                     if st.button("📈 View Mood History", use_container_width=True):
                         st.switch_page("pages/mood.py")

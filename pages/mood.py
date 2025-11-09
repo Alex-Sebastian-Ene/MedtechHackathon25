@@ -8,7 +8,7 @@ from datetime import datetime, date, timedelta
 if "user_id" not in st.session_state or st.session_state.user_id is None:
     st.warning("Please log in to view your mood history.")
     if st.button("Go to Login"):
-        st.switch_page("app.py")
+        st.switch_page("login.py")
     st.stop()
 
 st.title("Mood History")

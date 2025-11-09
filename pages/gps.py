@@ -44,7 +44,7 @@ ORDER BY gp.recorded_at ASC
 # Login protection
 if 'user_id' not in st.session_state:
     st.warning("Please log in to access this page.")
-    st.switch_page("app.py")
+    st.switch_page("login.py")
     st.stop()
 
 st.title("Places you've been")
