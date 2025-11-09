@@ -164,6 +164,13 @@ with get_connection() as conn:
             
             st.success(f"Showing {len(df)} location(s) for {scope}")
             
+            # Debug: Show sample data
+            with st.expander("Debug Info"):
+                st.write("Sample coordinates:", df[['lat', 'lon']].head())
+                st.write("Coordinate ranges:")
+                st.write(f"Lat: {df['lat'].min():.6f} to {df['lat'].max():.6f}")
+                st.write(f"Lon: {df['lon'].min():.6f} to {df['lon'].max():.6f}")
+            
             # Simple Map Mode - use PyDeck but simplified
             if view_mode == "Simple Map":
                 # Create simple layers
@@ -205,18 +212,23 @@ with get_connection() as conn:
                     pitch=0
                 )
                 
-                r = pdk.Deck(
-                    layers=layers,
-                    initial_view_state=view_state,
-                    map_style='mapbox://styles/mapbox/streets-v11',
-                    tooltip={"text": "Location: {lat}, {lon}\n{recorded_at}"}
-                )
-                
-                st.pydeck_chart(r)
-                
-                # Show path summary
-                if len(df) > 1:
-                    st.info(f"🔵 Path connects {len(df)} locations chronologically")
+                try:
+                    r = pdk.Deck(
+                        layers=layers,
+                        initial_view_state=view_state,
+                        map_style='https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
+                        tooltip={"text": "Location: {lat}, {lon}\n{recorded_at}"}
+                    )
+                    
+                    st.pydeck_chart(r)
+                    
+                    # Show path summary
+                    if len(df) > 1:
+                        st.info(f"🔵 Path connects {len(df)} locations chronologically")
+                except Exception as e:
+                    st.error(f"Map rendering failed: {e}")
+                    st.write("Fallback: Using basic st.map()")
+                    st.map(df, latitude='lat', longitude='lon', zoom=10)
                 
                 # Show data table
                 with st.expander("View Location History"):
@@ -375,9 +387,6 @@ with get_connection() as conn:
         3. Click "Save This Location"
         """)
 
-# Auto-refresh mechanism at the very end (after all content is displayed)
-import time
-
 # Show refresh status in sidebar
 with st.sidebar:
     st.divider()
@@ -391,11 +400,5 @@ with st.sidebar:
     else:
         st.warning("⏳ Waiting for GPS...")
     
-    st.caption("Auto-refresh: Every 15 seconds")
-    
-    if st.button("🔄 Refresh Now"):
+    if st.button("🔄 Refresh Page"):
         st.rerun()
-
-# Wait 15 seconds then automatically refresh the page
-time.sleep(15)
-st.rerun()

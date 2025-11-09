@@ -2,9 +2,27 @@ import streamlit as st
 from streamlit_calendar import calendar
 import pandas as pd
 import numpy as np
+from datetime import datetime
+import sys
+from pathlib import Path
+
+# Add project root to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from databases.database import (
+    create_questionnaire,
+    add_questionnaire_question,
+    save_questionnaire_response,
+    get_connection
+)
+from medtech_hackathon25.ml.ollama_client import get_response
+
+# Initialize session state
+if "user_id" not in st.session_state:
+    st.session_state.user_id = 1  # Default user for testing
 
 # title
-st.title("Depression Form")
+st.title("Depression Assessment Form")
 
 questions_list=[
     {
@@ -139,16 +157,231 @@ text_container.text_area(
 
 # form submission button
 submit = form.form_submit_button(
-    label="Submit"
+    label="Submit Assessment"
 )
 
-if submit:
-    # gets relevant values
-    object_to_send={}
-    for i in range(-1,len(questions_list)):
-        object_to_send["option "+str(i)]=st.session_state["option "+str(i)]
+def calculate_mood_score_from_responses(responses: dict) -> float:
+    """
+    Calculate mood score from questionnaire responses.
+    Lower score = worse mental health (1-5 scale)
+    Uses inverse weighted sum for sophistication.
+    """
+    total_score = 0
+    max_possible = 0
     
-    # send object to database
+    # Mapping for slider responses (depression indicators)
+    severity_map = {
+        "Not at all": 0,
+        "Slightly": 1,
+        "Moderately": 2,
+        "Quite a bit": 3,
+        "Completely": 4,
+        "Once a week": 1,
+        "Every other day": 2,
+        "Nearly every day": 3,
+        "Every day": 4
+    }
+    
+    # Process each response
+    for i in range(len(questions_list)):
+        key = f"option {i}"
+        if key not in responses:
+            continue
+            
+        response = responses[key]
+        question = questions_list[i]
+        
+        if question["type"] == "select_slider":
+            # Higher severity = worse mood
+            severity = severity_map.get(response, 0)
+            
+            # Weight critical questions more heavily
+            weight = 1.0
+            if "hurt myself" in question["title"].lower():
+                weight = 2.5  # Self-harm is critical
+            elif "failure" in question["title"].lower():
+                weight = 1.5
+            elif "let" in question["title"].lower() and "down" in question["title"].lower():
+                weight = 1.5
+                
+            total_score += severity * weight
+            max_possible += 4 * weight
+            
+        elif question["type"] == "feedback":
+            # Feedback scale: 0-4, invert it (lower energy = worse)
+            energy_level = response if isinstance(response, int) else 2
+            total_score += (4 - energy_level) * 1.2  # Inverted and weighted
+            max_possible += 4 * 1.2
+            
+        elif question["type"] == "pills":
+            if isinstance(response, list):
+                # Positive moods decrease score, negative moods increase it
+                positive_moods = ["Happy", "Hopeful", "Supported", "Valued", "Calm"]
+                negative_moods = ["Sad", "Hopeless", "Helpless", "Worthless", "Anxious"]
+                
+                positive_count = sum(1 for mood in response if mood in positive_moods)
+                negative_count = sum(1 for mood in response if mood in negative_moods)
+                
+                # More negative = higher score (worse)
+                total_score += negative_count * 1.3
+                total_score -= positive_count * 0.7  # Positive moods help
+                max_possible += 5 * 1.3  # Max negative moods
+    
+    if max_possible == 0:
+        return 5.0  # Default neutral
+    
+    # Normalize to 1-5 scale (inverted: lower = worse)
+    # Use inverse relationship: worse responses → lower score
+    raw_ratio = total_score / max_possible
+    
+    # Apply inverse transformation
+    # If raw_ratio is high (bad responses), score should be low
+    # Formula: 5 - (raw_ratio * 4) gives us 1-5 scale
+    mood_score = 5.0 - (raw_ratio * 4.0)
+    
+    # Clamp to 1-5 range
+    mood_score = max(1.0, min(5.0, mood_score))
+    
+    return round(mood_score, 2)
 
-    # return to home page
-    st.switch_page("pages/homePage.py")
+
+def analyze_text_with_llm(text_response: str) -> tuple[float, str]:
+    """
+    Send text response to LLM for mood analysis.
+    Returns (score, explanation) where score is 1-5 (lower = worse).
+    """
+    if not text_response or text_response.strip() == "":
+        return 3.0, "No text response provided."
+    
+    prompt = f"""You are a mental health assessment tool. Analyze the following text response from a depression screening questionnaire.
+
+User's response: "{text_response}"
+
+Provide a mental health score from 1-5:
+- 1: Severe depression, crisis indicators, immediate concern
+- 2: Strong depression, significant distress
+- 3: Moderate concern, some negative indicators
+- 4: Mild concern, mostly coping
+- 5: Positive mental health, good coping
+
+Respond in this exact format:
+SCORE: [number]
+REASON: [brief explanation]"""
+
+    try:
+        llm_response = get_response(prompt, system_prompt="You are a clinical mental health assessment assistant.")
+        
+        # Parse response
+        score_line = [line for line in llm_response.split('\n') if 'SCORE:' in line.upper()]
+        reason_line = [line for line in llm_response.split('\n') if 'REASON:' in line.upper()]
+        
+        if score_line:
+            score_text = score_line[0].split(':')[1].strip()
+            import re
+            numbers = re.findall(r'\b([1-5])\b', score_text)
+            llm_score = float(numbers[0]) if numbers else 3.0
+        else:
+            llm_score = 3.0
+            
+        if reason_line:
+            reason = reason_line[0].split(':', 1)[1].strip()
+        else:
+            reason = "Analysis completed."
+            
+        return llm_score, reason
+        
+    except Exception as e:
+        st.warning(f"LLM analysis unavailable: {e}")
+        return 3.0, "LLM analysis failed, using default score."
+
+
+if submit:
+    with st.spinner("Processing your assessment..."):
+        # Collect all responses
+        responses = {}
+        for i in range(-1, len(questions_list)):
+            key = f"option {i}"
+            if key in st.session_state:
+                responses[key] = st.session_state[key]
+        
+        # Calculate mood score from structured responses
+        structured_score = calculate_mood_score_from_responses(responses)
+        
+        # Analyze text response with LLM
+        text_response = responses.get("option -1", "")
+        llm_score, llm_explanation = analyze_text_with_llm(text_response)
+        
+        # Combined final score (weighted average)
+        # Structured responses: 60%, LLM analysis: 40%
+        final_score = (structured_score * 0.6) + (llm_score * 0.4)
+        final_score = round(final_score, 2)
+        
+        # Save to database
+        try:
+            with get_connection() as conn:
+                # Convert final score to 1-10 scale for mood_entries table
+                mood_score_10 = int(round(final_score * 2))  # 1-5 → 2-10
+                
+                # Save mood entry
+                cursor = conn.execute(
+                    """
+                    INSERT INTO mood_entries (user_id, mood_level_id, recorded_at, notes)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    (
+                        st.session_state.user_id,
+                        mood_score_10,
+                        datetime.now().isoformat(),
+                        f"Depression Assessment - Structured: {structured_score}, LLM: {llm_score}, Text: {text_response[:200]}"
+                    )
+                )
+                conn.commit()
+                
+                # Display results
+                st.success("✅ Assessment submitted successfully!")
+                
+                st.markdown("---")
+                st.subheader("📊 Your Assessment Results")
+                
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    st.metric("Structured Score", f"{structured_score}/5.0")
+                    st.caption("Based on questionnaire responses")
+                
+                with col2:
+                    st.metric("LLM Analysis", f"{llm_score}/5.0")
+                    st.caption("AI text analysis")
+                
+                with col3:
+                    st.metric("Final Score", f"{final_score}/5.0")
+                    st.caption("Combined assessment")
+                
+                # Score interpretation
+                st.markdown("---")
+                if final_score <= 2.0:
+                    st.error("⚠️ **Severe Concern**: Your responses indicate significant distress. Please consider reaching out to a mental health professional or crisis helpline immediately.")
+                elif final_score <= 3.0:
+                    st.warning("⚠️ **Moderate Concern**: Your responses show signs of depression. We recommend speaking with a healthcare provider.")
+                elif final_score <= 4.0:
+                    st.info("ℹ️ **Mild Concern**: Some negative indicators detected. Consider self-care activities and monitoring your mood.")
+                else:
+                    st.success("✅ **Positive Assessment**: Your responses indicate relatively good mental health. Keep up healthy habits!")
+                
+                # LLM explanation
+                if llm_explanation:
+                    with st.expander("🤖 AI Analysis Details"):
+                        st.write(llm_explanation)
+                
+                # Option to return home or view history
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    if st.button("🏠 Return Home", use_container_width=True):
+                        st.switch_page("pages/homePage.py")
+                with col_b:
+                    if st.button("📈 View Mood History", use_container_width=True):
+                        st.switch_page("pages/mood.py")
+                        
+        except Exception as e:
+            st.error(f"Error saving assessment: {e}")
+            st.exception(e)
