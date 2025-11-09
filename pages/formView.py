@@ -1,3 +1,15 @@
+"""
+Depression Assessment Form - PHQ-9 Based Mental Health Screening
+
+Features:
+- Saves all individual responses to questionnaire_responses table
+- Calculates weighted average mood score (1-5 scale, lower = worse)
+- Uses actual response count (not max possible) for denominator
+- Multiple choice pills contribute to running average based on selection counts
+- LLM analysis of text responses for comprehensive assessment
+- Combined score (60% structured, 40% LLM) saved to mood_entries
+"""
+
 import streamlit as st
 from streamlit_calendar import calendar
 import pandas as pd
@@ -164,10 +176,10 @@ def calculate_mood_score_from_responses(responses: dict) -> float:
     """
     Calculate mood score from questionnaire responses.
     Lower score = worse mental health (1-5 scale)
-    Uses inverse weighted sum for sophistication.
+    Uses weighted average (divide by actual count, not max possible).
     """
-    total_score = 0
-    max_possible = 0
+    total_weighted_score = 0
+    total_weights = 0
     
     # Mapping for slider responses (depression indicators)
     severity_map = {
@@ -203,15 +215,21 @@ def calculate_mood_score_from_responses(responses: dict) -> float:
                 weight = 1.5
             elif "let" in question["title"].lower() and "down" in question["title"].lower():
                 weight = 1.5
-                
-            total_score += severity * weight
-            max_possible += 4 * weight
+            
+            # Normalize severity to 0-1 scale, then apply weight
+            normalized_severity = severity / 4.0  # 0-4 → 0-1
+            total_weighted_score += normalized_severity * weight
+            total_weights += weight
             
         elif question["type"] == "feedback":
             # Feedback scale: 0-4, invert it (lower energy = worse)
             energy_level = response if isinstance(response, int) else 2
-            total_score += (4 - energy_level) * 1.2  # Inverted and weighted
-            max_possible += 4 * 1.2
+            weight = 1.2
+            
+            # Normalize and invert (4-energy gives us inverse)
+            normalized_score = (4 - energy_level) / 4.0  # 0-1 scale
+            total_weighted_score += normalized_score * weight
+            total_weights += weight
             
         elif question["type"] == "pills":
             if isinstance(response, list):
@@ -222,22 +240,33 @@ def calculate_mood_score_from_responses(responses: dict) -> float:
                 positive_count = sum(1 for mood in response if mood in positive_moods)
                 negative_count = sum(1 for mood in response if mood in negative_moods)
                 
+                weight = 1.3
+                
+                # Calculate as ratio of negative to total possible
                 # More negative = higher score (worse)
-                total_score += negative_count * 1.3
-                total_score -= positive_count * 0.7  # Positive moods help
-                max_possible += 5 * 1.3  # Max negative moods
+                total_selected = len(response)
+                if total_selected > 0:
+                    # Negative ratio increased by positive reduction
+                    negative_ratio = negative_count / 5.0  # Max 5 negative moods
+                    positive_ratio = positive_count / 5.0  # Max 5 positive moods
+                    
+                    # Combined score: negative adds, positive subtracts
+                    pill_score = negative_ratio - (positive_ratio * 0.5)  # Positive helps less
+                    pill_score = max(0, min(1, pill_score))  # Clamp to 0-1
+                    
+                    total_weighted_score += pill_score * weight
+                    total_weights += weight
     
-    if max_possible == 0:
+    if total_weights == 0:
         return 5.0  # Default neutral
     
-    # Normalize to 1-5 scale (inverted: lower = worse)
-    # Use inverse relationship: worse responses → lower score
-    raw_ratio = total_score / max_possible
+    # Calculate weighted average (0-1 scale)
+    average_score = total_weighted_score / total_weights
     
-    # Apply inverse transformation
-    # If raw_ratio is high (bad responses), score should be low
-    # Formula: 5 - (raw_ratio * 4) gives us 1-5 scale
-    mood_score = 5.0 - (raw_ratio * 4.0)
+    # Convert to 1-5 scale (inverted: lower = worse)
+    # average_score of 1.0 (worst) → mood_score of 1.0
+    # average_score of 0.0 (best) → mood_score of 5.0
+    mood_score = 5.0 - (average_score * 4.0)
     
     # Clamp to 1-5 range
     mood_score = max(1.0, min(5.0, mood_score))
@@ -319,10 +348,128 @@ if submit:
         # Save to database
         try:
             with get_connection() as conn:
+                # First, create or get the questionnaire
+                questionnaire_id = None
+                existing_q = conn.execute(
+                    "SELECT questionnaire_id FROM questionnaires WHERE title = ? AND is_active = 1",
+                    ("Depression Assessment Form",)
+                ).fetchone()
+                
+                if existing_q:
+                    questionnaire_id = existing_q[0]
+                else:
+                    # Create questionnaire
+                    cursor = conn.execute(
+                        "INSERT INTO questionnaires (title, description, created_at, is_active) VALUES (?, ?, ?, ?)",
+                        ("Depression Assessment Form", "PHQ-9 based depression screening", datetime.now().isoformat(), 1)
+                    )
+                    questionnaire_id = cursor.lastrowid
+                    
+                    # Add questions to questionnaire
+                    for idx, question in enumerate(questions_list):
+                        conn.execute(
+                            """
+                            INSERT INTO questionnaire_questions 
+                            (questionnaire_id, question_text, question_type, options, order_index, is_required)
+                            VALUES (?, ?, ?, ?, ?, ?)
+                            """,
+                            (
+                                questionnaire_id,
+                                question["title"],
+                                question["type"],
+                                str(question.get("options", [])),
+                                idx,
+                                1
+                            )
+                        )
+                    
+                    # Add text question
+                    conn.execute(
+                        """
+                        INSERT INTO questionnaire_questions 
+                        (questionnaire_id, question_text, question_type, options, order_index, is_required)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                        """,
+                        (questionnaire_id, "How are you feeling today?", "text", None, len(questions_list), 0)
+                    )
+                    conn.commit()
+                
+                # Get question IDs
+                question_rows = conn.execute(
+                    """
+                    SELECT question_id, order_index FROM questionnaire_questions
+                    WHERE questionnaire_id = ?
+                    ORDER BY order_index
+                    """,
+                    (questionnaire_id,)
+                ).fetchall()
+                
+                # Save individual responses
+                severity_map = {
+                    "Not at all": 0, "Slightly": 1, "Moderately": 2, "Quite a bit": 3, "Completely": 4,
+                    "Once a week": 1, "Every other day": 2, "Nearly every day": 3, "Every day": 4
+                }
+                
+                for question_id, order_idx in question_rows:
+                    if order_idx < len(questions_list):
+                        # Regular question
+                        key = f"option {order_idx}"
+                        if key in responses:
+                            response_value = responses[key]
+                            
+                            # Convert to numeric value where applicable
+                            if isinstance(response_value, str):
+                                numeric_value = severity_map.get(response_value, None)
+                                text_value = response_value
+                            elif isinstance(response_value, int):
+                                numeric_value = float(response_value)
+                                text_value = str(response_value)
+                            elif isinstance(response_value, list):
+                                # Multiple choice - save as comma-separated
+                                text_value = ", ".join(response_value)
+                                numeric_value = float(len(response_value))
+                            else:
+                                text_value = str(response_value)
+                                numeric_value = None
+                            
+                            conn.execute(
+                                """
+                                INSERT INTO questionnaire_responses
+                                (user_id, questionnaire_id, question_id, response_text, response_value, answered_at)
+                                VALUES (?, ?, ?, ?, ?, ?)
+                                """,
+                                (
+                                    st.session_state.user_id,
+                                    questionnaire_id,
+                                    question_id,
+                                    text_value,
+                                    numeric_value,
+                                    datetime.now().isoformat()
+                                )
+                            )
+                    else:
+                        # Text response question
+                        if text_response:
+                            conn.execute(
+                                """
+                                INSERT INTO questionnaire_responses
+                                (user_id, questionnaire_id, question_id, response_text, response_value, answered_at)
+                                VALUES (?, ?, ?, ?, ?, ?)
+                                """,
+                                (
+                                    st.session_state.user_id,
+                                    questionnaire_id,
+                                    question_id,
+                                    text_response,
+                                    None,
+                                    datetime.now().isoformat()
+                                )
+                            )
+                
                 # Convert final score to 1-10 scale for mood_entries table
                 mood_score_10 = int(round(final_score * 2))  # 1-5 → 2-10
                 
-                # Save mood entry
+                # Save mood entry with reference to questionnaire
                 cursor = conn.execute(
                     """
                     INSERT INTO mood_entries (user_id, mood_level_id, recorded_at, notes)
@@ -332,7 +479,7 @@ if submit:
                         st.session_state.user_id,
                         mood_score_10,
                         datetime.now().isoformat(),
-                        f"Depression Assessment - Structured: {structured_score}, LLM: {llm_score}, Text: {text_response[:200]}"
+                        f"Depression Assessment (Q{questionnaire_id}) - Structured: {structured_score}/5.0, LLM: {llm_score}/5.0, Final: {final_score}/5.0 | Text: {text_response[:150]}"
                     )
                 )
                 conn.commit()

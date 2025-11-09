@@ -631,3 +631,72 @@ def get_chat_history_for_ollama(session_id: int) -> list[dict]:
 	"""Get chat history formatted for Ollama ChatSession."""
 	messages = get_chat_session_messages(session_id)
 	return [{"role": msg["role"], "content": msg["content"]} for msg in messages]
+
+
+def get_user_all_questionnaire_responses(user_id: int, limit: int = 10) -> list[dict]:
+	"""Get all questionnaire submissions for a user with summary scores."""
+	with get_connection() as conn:
+		# Get distinct submission times (group by answered_at date)
+		rows = conn.execute(
+			"""
+			SELECT 
+				qr.questionnaire_id,
+				q.title,
+				DATE(qr.answered_at) as submission_date,
+				MIN(qr.answered_at) as first_answer_time,
+				COUNT(DISTINCT qr.question_id) as questions_answered,
+				AVG(qr.response_value) as avg_response_value
+			FROM questionnaire_responses qr
+			JOIN questionnaires q ON qr.questionnaire_id = q.questionnaire_id
+			WHERE qr.user_id = ?
+			GROUP BY qr.questionnaire_id, DATE(qr.answered_at)
+			ORDER BY first_answer_time DESC
+			LIMIT ?
+			""",
+			(user_id, limit)
+		).fetchall()
+		
+		return [
+			{
+				"questionnaire_id": row[0],
+				"title": row[1],
+				"submission_date": row[2],
+				"timestamp": row[3],
+				"questions_answered": row[4],
+				"avg_response_value": row[5]
+			}
+			for row in rows
+		]
+
+
+def get_questionnaire_submission_details(user_id: int, questionnaire_id: int, submission_date: str) -> list[dict]:
+	"""Get detailed responses for a specific questionnaire submission."""
+	with get_connection() as conn:
+		rows = conn.execute(
+			"""
+			SELECT 
+				qq.question_text,
+				qq.question_type,
+				qr.response_text,
+				qr.response_value,
+				qr.answered_at
+			FROM questionnaire_responses qr
+			JOIN questionnaire_questions qq ON qr.question_id = qq.question_id
+			WHERE qr.user_id = ? 
+				AND qr.questionnaire_id = ?
+				AND DATE(qr.answered_at) = ?
+			ORDER BY qq.order_index
+			""",
+			(user_id, questionnaire_id, submission_date)
+		).fetchall()
+		
+		return [
+			{
+				"question": row[0],
+				"type": row[1],
+				"response_text": row[2],
+				"response_value": row[3],
+				"answered_at": row[4]
+			}
+			for row in rows
+		]
