@@ -34,7 +34,7 @@ if "user_id" not in st.session_state:
     st.session_state.user_id = 1  # Default user for testing
 
 # title
-st.title("Depression Assessment Form")
+st.title("Mood and Anxiety Tracking Form")
 
 questions_list=[
     {

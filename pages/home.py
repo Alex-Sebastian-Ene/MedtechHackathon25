@@ -19,6 +19,7 @@ tabHome, tabTasks, tabLLM = st.tabs(["Home","Tasks","Chatbot"])
 with tabHome:
     # title
     st.title("Home Page")
+    st.divider()
 
     events = [
         {
@@ -101,6 +102,9 @@ with tabLLM:
 
     # Title and user info
     st.title("AI Health Assistant")
+    
+    st.divider()
+
     st.caption(f"👤 Logged in as: {st.session_state.get('username', 'Unknown')}")
 
     # Initialize chat session
@@ -207,3 +211,14 @@ with tabLLM:
         except Exception as e:
             st.error(f"Error communicating with AI: {str(e)}")
             st.info("Make sure Ollama is running. Run `ollama serve` in your terminal.")
+
+with tabTasks:
+    st.title("Tasks")
+    st.divider()
+
+    st.checkbox(label= "Call your Mum") # Make them contact family/friends
+    st.checkbox(label= "Go Shopping") # Make them go outside
+    st.checkbox(label= "Do some streches") # Make them exercises
+    st.checkbox(label = "Go skateboarding") #Do hombbies
+    st.checkbox(label= "Do some colouring") #color therapy
+
