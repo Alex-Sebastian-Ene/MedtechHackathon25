@@ -144,7 +144,7 @@ with tabLLM:
     if "user_id" not in st.session_state or st.session_state.user_id is None:
         st.warning("Please log in to use the chat.")
         if st.button("Go to Login"):
-            st.switch_page("app.py")
+            st.switch_page("login.py")
         st.stop()
 
     st.caption(f"👤 Logged in as: {st.session_state.get('username', 'Unknown')}")

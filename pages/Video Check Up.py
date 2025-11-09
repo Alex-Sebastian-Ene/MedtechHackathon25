@@ -59,8 +59,9 @@ def _init_session_state() -> None:
         st.session_state.setdefault(key, value)
 
 
-@st.cache_resource(show_spinner=False)
+@st.cache_resource(show_spinner="Loading emotion recognition models...")
 def _get_emotion_recognizer() -> FaceEmotionRecognizer:
+    """Cache the emotion recognizer to avoid reloading models on every page refresh."""
     return FaceEmotionRecognizer()
 
 
@@ -114,8 +115,19 @@ if "user_id" not in st.session_state or st.session_state.user_id is None:
         st.switch_page("login.py")
     st.stop()
 
-# Display logged-in user
+# Display page title and user info
+st.title("🎥 Emotion Video Check-Up")
 st.caption(f"👤 Logged in as: {st.session_state.get('username', 'Unknown')}")
+
+# Add info about the scan
+with st.expander("ℹ️ How it works", expanded=False):
+    st.markdown("""
+    - **10-second scan**: The camera will record for 10 seconds
+    - **Real-time analysis**: Your emotions are analyzed multiple times per second
+    - **Mood score**: Get an overall mood rating from 1-10
+    - **Automatic save**: Results are saved to your mood history
+    - **Privacy**: All processing happens on your device
+    """)
 
 if st.session_state.analysis_result or st.session_state.analysis_error:
     if st.button("Start New Scan", type="primary"):
@@ -170,12 +182,12 @@ if ctx and ctx.state.playing:
 
     elapsed = now - st.session_state.record_start_time
 
-    # Run emotion analysis every 0.1 seconds
+    # Run emotion analysis every 0.2 seconds (reduced frequency for better performance)
     if processor and processor.last_frame is not None:
-        last_analysis = st.session_state.last_analysis_time if st.session_state.last_analysis_time is not None else now - 0.2
-        if now - last_analysis >= 0.1:
+        last_analysis = st.session_state.last_analysis_time if st.session_state.last_analysis_time is not None else now - 0.3
+        if now - last_analysis >= 0.2:  # Reduced from 0.1 to 0.2 for better performance
             try:
-                # Use the existing analyze_frame method, but also get detailed scores
+                # Lazy load the recognizer only when needed
                 recognizer = _get_emotion_recognizer()
                 from PIL import Image
                 rgb = cv2.cvtColor(processor.last_frame, cv2.COLOR_BGR2RGB)
@@ -236,7 +248,7 @@ if ctx and ctx.state.playing:
     else:
         analysis_count = len(st.session_state.emotion_history)
         status_placeholder.markdown(f'<div class="status-text" style="background-color: #e8f5e9; color: #2e7d32; min-height: 50px; width: 100%; display: flex; align-items: center; justify-content: center;">{elapsed:.1f}s | {analysis_count} frames</div>', unsafe_allow_html=True)
-        time.sleep(1/144)
+        time.sleep(0.1)  # Reduced rerun frequency from 144fps to 10fps for better performance
         st.rerun()
 else:
     st.session_state.record_start_time = None
